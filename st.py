@@ -143,6 +143,7 @@ def portOpt(f,portfolio):
         options={'disp':True},bounds=bounds,constraints=cons)
 
 
+
 def preVal(fv,ir,i):
     return fv/(1+ir)**i
 
