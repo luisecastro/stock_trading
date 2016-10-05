@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Luis Castro 2016
 # This file will serve as a library of functions to be called to perform a step 
 # by step analysis of the stock market
@@ -60,7 +61,6 @@ def get_data(symbols,columns,start,end):
         df = df.join(df_temp,how='left')
     
     df = df.dropna(subset=['SPY_adj_close'])
-    df.columns = symbols
     
     return df
 
@@ -71,9 +71,10 @@ def get_data(symbols,columns,start,end):
 # whatever is missing with the first available value
 
 def fillna(df):
-    df.fillna(method='ffill',inplace='TRUE')
-    df.fillna(method='bfill',inplace='TRUE')
-    return df
+    ndf = df.copy()
+    ndf.fillna(method='ffill',inplace='TRUE')
+    ndf.fillna(method='bfill',inplace='TRUE')
+    return ndf
 
 
 
@@ -81,40 +82,57 @@ def fillna(df):
 # start in 1.0 for all columns and continue as a rate of this first value
 
 def normalize(df):
-    return df/df.ix[0,:]
+    ndf = df.copy()
+    return ndf/ndf.ix[0,:]
 
 
 
 # Computes rolling statistics, mean and std along with Bollinger Bands(r)
 # it receives a dataframe, a symbol and the size of the window to be used
 
-def rolling(df,symbol,window=20):
-    temp = pd.DataFrame(index=df.index,columns=['mean','std','lbb','hbb'])
-    temp['mean'] = df.rolling(window=window,center=False).mean()
-    temp['std'] = df.rolling(window=window,center=False).std()
-    temp['lbb'] = temp['mean']+2*temp['std']
-    temp['hbb'] = temp['mean']-2*temp['std']
-    return temp
+def rolling(df,window=20):
+    columns = list()
+    stats = ['_raw','_sma','_ema','_std','_lbb','_hbb']
+
+    for i in df.columns:
+        for j in stats:
+            columns.append(i+j)
+
+    ndf = pd.DataFrame(index=df.index,columns=columns)
+
+    for i in df.columns:
+            ndf[i+stats[0]] = df[i]
+            ndf[i+stats[1]] = df[i].rolling(window=window,center=False).mean()
+            ndf[i+stats[2]] = df[i].ewm(span=window).mean()
+            ndf[i+stats[3]] = df[i].rolling(window=window,center=False).std()
+            ndf[i+stats[4]] = ndf[i+'_sma']+2*ndf[i+'_std']
+            ndf[i+stats[5]] = ndf[i+'_sma']-2*ndf[i+'_std']
+    
+    return ndf
+
+
 
 
 # Takes a data frame and returns only the columns between the dates specified
 # of the closest dates to them
 
 def time_slice(df,start,end):
-    start = df.index.searchsorted(start)
-    end = df.index.searchsorted(end)
-    return df.ix[start:end]
+    ndf = df.copy()
+    start = ndf.index.searchsorted(start)
+    end = ndf.index.searchsorted(end)
+    return ndf.ix[start:end]
 
 
 
 # Calculates the daily return, it takes the data frame and divides it by the 
-# previous date, and substracts one, resulting in the rate of variation from
-# one day to the next one
+# previous n days, and substracts one, resulting in the rate of variation from
+# the n day to the next one
 
-def dailyReturn(df):
-    df[1:] = (df[1:]/df[:-1].values)-1
-    df.ix[0,:] = 0
-    return df
+def dailyReturn(df,n=1):
+    ndf = df.copy()
+    ndf[n:] = (df[n:]/df[:-n].values)-1
+    ndf.ix[range(n),:] = 0
+    return ndf
 
 
 
@@ -122,7 +140,8 @@ def dailyReturn(df):
 # date available on the dataframe
 
 def cumReturn(df):
-    return dr/dr.ix[0]-1
+    ndf = df.copy()
+    return ndr/ndr.ix[0]-1
 
 
 
@@ -186,13 +205,16 @@ def portOpt(f,portfolio):
     allocation = list()
     bounds = list()
 
-    for i in range(portfolio.shape[1]):
+    n = portfolio.shape[1]
+
+    for i in range(n):
         allocation.append(1./n) # used random?
         bounds.append((0,1)) # (-1,1)
 
 
     return spo.minimize(f,allocation,args=(portfolio,),method='SLSQP',
         options={'disp':True},bounds=bounds,constraints=cons)
+
 
 
 # Calculate present value with future value, interest rate and time
@@ -215,25 +237,26 @@ def portLin(df):
     return temp
 
 
+
 # Calculates de alphas and betas of an entire portfolio, the aim here would be
 # to minimize beta (make the portfolio independent of the market) while maximizing
-# alpha (always have and advantage of the market)
+# alpha (always have an advantage of the market)
 
 def riskPro(allocation,betas,alphas):
     return np.sum(np.multiply(betas,allocation)),np.sum(np.multiply(alphas,allocation))
 
 
 
+# Filter function to extract only certain symbols or certain stats
 
+def filter(df,symbol):
+    length = len(symbol)
+    columns = list()
+    for i in range(len(df.columns)):
+        if df.columns[i][0:length]==symbol or df.columns[i][-length:]==symbol:
+            columns.append(i)
 
-
-
-
-
-
-
-
-
+    return df[df.columns[columns]]
 
 
 
