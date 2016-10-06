@@ -6,11 +6,13 @@ import matplotlib.pyplot as plt
 # Apple, Google (Alphabet), Microsoft, Amazon
 # 
 # And use the indicators of the SPY500 
-symbols = ['GOOGL','AAPL','MSFT','AMZN','SPY']# ['^IXIC','^GDAXI','^FCHI','^N225','^HSI','^AXJO','^DJI']
+# symbols = ['GOOGL','AAPL','MSFT','AMZN','SPY']# ['^IXIC','^GDAXI','^FCHI','^N225','^HSI','^AXJO','^DJI']
+symbols = ['GOOGL','SPY']
 
 
 # Download 5 years worth of historic data
 dates = ['2011-09-30','2016-09-30']
+
 
 # Call function to download data
 st.stock_dl(symbols,dates[0],dates[1])
@@ -35,16 +37,12 @@ norm = st.normalize(dat)
 
 # Get rolling statistics, including rolling mean, rolling exponential mean, rolling std and bollinger bands(R)
 roll = st.rolling(norm)
-
+# print st.filter(st.rolling(norm),'sma')
+print roll
 
 # Get daily returns, that is the rate of increase or decrease of the stock, number of
 # days of difference can be specified
 dr_1 = st.dailyReturn(norm)
 dr_2 = st.dailyReturn(norm,2)
 dr_3 = st.dailyReturn(norm,3)
-
-
-print st.filter(st.rolling(norm),'sma')
-
-
 

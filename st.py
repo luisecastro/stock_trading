@@ -11,7 +11,11 @@ import os
 import pandas as pd
 import numpy as np
 import scipy.optimize as spo
-
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
+from sklearn.linear_model import LogisticRegression
 
 
 # Function accesses Yahoo Finance API and downloads the historical data according
@@ -108,7 +112,7 @@ def rolling(df,window=20):
             ndf[i+stats[4]] = ndf[i+'_sma']+2*ndf[i+'_std']
             ndf[i+stats[5]] = ndf[i+'_sma']-2*ndf[i+'_std']
     
-    return ndf
+    return ndf.ix[window:]
 
 
 
@@ -260,4 +264,49 @@ def filter(df,symbol):
 
 
 
+# Machine Learning Classification Algorithms
 
+# Random Forest
+def rfClass(X_train,y_train,n=1000,c='gini'):
+    clf = RandomForestClassifier(n_estimators=n,criterion=c,n_jobs=-1)
+    clf.fit(X_train,y_train)
+    return clf
+
+# K Nearest Neighbors
+def knnClass(X_train,y_train,n=5,w='uniform'):
+    clf = KNeighborsClassifier(n_neighbors=n,weights=w,n_jobs=-1)
+    clf.fit(X_train,y_train)
+    return clf
+
+# Support Vector Machine
+def svmClass(X_train,y_train,c=1,g='auto',k='rbf'):
+    clf = SVC(C=c,kernel=k,gamma=g,n_jobs=-1)
+    clf.fit(X_train, y_train)
+    return clf
+
+# Adaptative Boosting
+def aboostClass(X_train,y_train,n=1000):
+    clf = AdaBoostClassifier(n_estimators=n)
+    clf.fit(X_train, y_train)   
+    return clf
+
+# Gradient Tree Boosting
+def gtbClass(X_train,y_train,n=1000):
+    clf = GradientBoostingClassifier(n_estimators=n)
+    clf.fit(X_train, y_train)
+    return clf
+
+# Quadratic Discriminant Analysis
+def qdaClass(X_train,y_train,tiny=0.0001):
+    X_train[X_train<tiny] = tiny
+    y_train[y_train<tiny] = tiny
+    
+    clf = QuadraticDiscriminantAnalysis()
+    clf.fit(X_train, y_train)
+    return clf
+
+# Logistic Regression
+def lrClass(X_train,y_train):
+    clf = LinearRegression(n_jobs=-1)
+    clf.fit(X_train, y_train)
+    return clf
