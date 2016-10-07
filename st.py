@@ -21,7 +21,6 @@ from sklearn.linear_model import LogisticRegression
 # Function accesses Yahoo Finance API and downloads the historical data according
 # to the symbol of the stock and the date range indicated. Before doing so, checks
 # if there is already a file from such symbol
-
 def stock_dl(symbol,start,end):
     columns = ['volume','symbol','adj_close','high','low','date','close','open']
     for j in symbol:
@@ -43,7 +42,6 @@ def stock_dl(symbol,start,end):
 
 
 # Auxiliary function, creates a path using the symbol provided
-
 def symbol_to_path(symbol,base_dir="stock"):
     return os.path.join(base_dir,"{}.csv".format(str(symbol)))
 
@@ -52,7 +50,6 @@ def symbol_to_path(symbol,base_dir="stock"):
 # Create a Pandas dataframe, reading the files from the symbols specified, 
 # and selecting the columns indicated along with a time range
 # it uses the SPY symbol to identify the trading days
-
 def get_data(symbols,columns,start,end):
     dates = pd.date_range(start,end)
     df = pd.DataFrame(index=dates)
@@ -73,7 +70,6 @@ def get_data(symbols,columns,start,end):
 # Function to fill NA's and NaN's in the data frame, it searches for them and first
 # tries to fill them forward, using the last available value, then it backward fills
 # whatever is missing with the first available value
-
 def fillna(df):
     ndf = df.copy()
     ndf.fillna(method='ffill',inplace='TRUE')
@@ -93,7 +89,6 @@ def normalize(df):
 
 # Computes rolling statistics, mean and std along with Bollinger Bands(r)
 # it receives a dataframe, a symbol and the size of the window to be used
-
 def rolling(df,window=20):
     columns = list()
     stats = ['_raw','_sma','_ema','_std','_lbb','_hbb']
@@ -112,14 +107,13 @@ def rolling(df,window=20):
             ndf[i+stats[4]] = ndf[i+'_sma']+2*ndf[i+'_std']
             ndf[i+stats[5]] = ndf[i+'_sma']-2*ndf[i+'_std']
     
-    return ndf.ix[window:]
+    return ndf
 
 
 
 
 # Takes a data frame and returns only the columns between the dates specified
 # of the closest dates to them
-
 def time_slice(df,start,end):
     ndf = df.copy()
     start = ndf.index.searchsorted(start)
@@ -131,18 +125,34 @@ def time_slice(df,start,end):
 # Calculates the daily return, it takes the data frame and divides it by the 
 # previous n days, and substracts one, resulting in the rate of variation from
 # the n day to the next one
-
+'''
 def dailyReturn(df,n=1):
     ndf = df.copy()
     ndf[n:] = (df[n:]/df[:-n].values)-1
     ndf.ix[range(n),:] = 0
     return ndf
+'''
+
+def dailyReturn(df,n=1):
+    names = list()
+    for i in range(n):
+        for j in df.columns:
+            names.append(j+'_dr'+str(i+1))
+
+    ndf = pd.DataFrame(index=df.index,columns=names)
+    
+    for i in range(n):
+        for j in df.columns:
+            ndf[j+'_dr'+str(i)].ix[i:] = (df[j].ix[i:]/df[j].ix[:-i].values)-1
+            ndf[j+'_dr'+str(i)].ix[:i] = 0
+
+    return ndf
+
 
 
 
 # Similar to daily return, it calculates the rate of return but to the first
 # date available on the dataframe
-
 def cumReturn(df):
     ndf = df.copy()
     return ndr/ndr.ix[0]-1
@@ -151,7 +161,6 @@ def cumReturn(df):
 
 # Fits a polynomial to the data, can specify the degree of the polynomial
 # usually 1, and the symbols to use as data (usually one of them is the market SPY)
-
 def fitPol(df,symbol1,symbol2='SPY',n=1):
     return np.polyfit(df[symbol1],df[symbol2],n)
 
@@ -159,7 +168,6 @@ def fitPol(df,symbol1,symbol2='SPY',n=1):
 
 # Computes statistics for each symbol in the dataframe, mean, std, kurtosis and sharpe ratio
 # risk free can be specified with drf
-
 def stats(df,drf=0,samples=252):
     temp = pd.DataFrame(index=df.columns.values,columns=['mean','std','kurtosis','sharpe'])
     temp['mean'] = df.mean()
@@ -172,7 +180,6 @@ def stats(df,drf=0,samples=252):
 
 # Calculates the value of a portfolio, takes the dataframe and the allocation of weights 
 # and outputs a number (value of portfolio on day 1 is 1)
-
 def portVal(df,allocation):
     return np.sum(np.multiply(df/df.ix[0,:],allocation.values),axis=1)
 
@@ -181,7 +188,6 @@ def portVal(df,allocation):
 # The following 3 functions are used with the 4th one, as each can be used to optimize
 # the portfolio according to a metric, highest sharpe ratio, lowest risk (lowest std) 
 # or maximum portfolio value
-
 def sharpe(allocation,portfolio,drf=0,samples=252):
     portfolio = (portfolio*allocation).sum(axis=1)
     return -1.*np.sqrt(samples)*(portfolio.mean()-drf)/portfolio.std()
@@ -203,7 +209,6 @@ def profit(allocation,portfolio):
 # This is a portfolio optimizing function, takes a function to maximize (or minimize)
 # and iterates until finding the optimum value. The constrain is that all values in the
 # portfolio must sum up to 1 and the values of each weight must range from 0 to 1
-
 def portOpt(f,portfolio):
     cons = ({'type':'eq','fun':lambda x: 1-sum(x)}) # sum(abs(x))
     allocation = list()
@@ -222,7 +227,6 @@ def portOpt(f,portfolio):
 
 
 # Calculate present value with future value, interest rate and time
-
 def preVal(fv,ir,i):
     return fv/(1+ir)**i
 
@@ -230,7 +234,6 @@ def preVal(fv,ir,i):
 
 # Function to calculate the alphas and betas of all the symbols in the
 # dataframe, they are calculated against SPY
-
 def portLin(df):
     symbols = df.columns.values
     temp = (pd.DataFrame(index=symbols,columns=['beta','alpha']))
@@ -245,14 +248,12 @@ def portLin(df):
 # Calculates de alphas and betas of an entire portfolio, the aim here would be
 # to minimize beta (make the portfolio independent of the market) while maximizing
 # alpha (always have an advantage of the market)
-
 def riskPro(allocation,betas,alphas):
     return np.sum(np.multiply(betas,allocation)),np.sum(np.multiply(alphas,allocation))
 
 
 
 # Filter function to extract only certain symbols or certain stats
-
 def filter(df,symbol):
     length = len(symbol)
     columns = list()
@@ -264,8 +265,15 @@ def filter(df,symbol):
 
 
 
-# Machine Learning Classification Algorithms
+def crossVal(df,folds=10,i=0,off=1):
+    length = df.shape[0]
+    train = length/folds
+    offset = train*(i+1)*off
+    return df.ix[train*i:offset], df.ix[offset:offset+train]
 
+
+
+# Machine Learning Classification Algorithms
 # Random Forest
 def rfClass(X_train,y_train,n=1000,c='gini'):
     clf = RandomForestClassifier(n_estimators=n,criterion=c,n_jobs=-1)
@@ -310,3 +318,6 @@ def lrClass(X_train,y_train):
     clf = LinearRegression(n_jobs=-1)
     clf.fit(X_train, y_train)
     return clf
+
+
+

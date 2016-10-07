@@ -38,11 +38,9 @@ norm = st.normalize(dat)
 # Get rolling statistics, including rolling mean, rolling exponential mean, rolling std and bollinger bands(R)
 roll = st.rolling(norm)
 # print st.filter(st.rolling(norm),'sma')
-print roll
 
 # Get daily returns, that is the rate of increase or decrease of the stock, number of
 # days of difference can be specified
-dr_1 = st.dailyReturn(norm)
-dr_2 = st.dailyReturn(norm,2)
-dr_3 = st.dailyReturn(norm,3)
+df_3 = st.dailyReturn(norm,3)
 
+# p/e ratio, bollinger bands, price momentum, current price vs future price, future returns look into the future (n days)
